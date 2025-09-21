@@ -1,0 +1,736 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Me dio dolor de cabeza este Trabajo</title>
+    <style>
+        /* --- ESTILOS GENERALES Y DE LAYOUT --- */
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(to right, #fddb92, #d1fdff);
+            color: #333;
+            text-align: center;
+        }
+
+        /* Contenedor de texto y botones (columna izquierda) */
+        .content-left {
+            flex: 1;
+            max-width: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            background-color: rgba(255, 255, 255, 0.85);
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+            margin: 20px;
+            z-index: 10;
+        }
+
+        h1 {
+            color: #ff69b4;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px #ffe4e1;
+            position: relative;
+        }
+
+        /* Animación del brillo en el título */
+        h1::after {
+            content: "✨";
+            position: absolute;
+            top: -10px;
+            right: -20px;
+            font-size: 1.5em;
+            animation: sparkle 2s infinite ease-in-out;
+            opacity: 0;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+        
+        p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        /* Botones */
+        .button-group {
+            margin-top: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+        button {
+            background-color: #ff69b4;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            font-size: 1.1em;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        button:hover {
+            background-color: #ff4d8a;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Mensajes */
+        #messageDisplay {
+            margin-top: 25px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #4CAF50;
+            min-height: 30px;
+        }
+
+        /* Lienzo de la animación de girasoles (columna derecha) */
+        #flowerCanvas {
+            flex: 1;
+            max-width: 50%;
+            height: 100vh;
+            z-index: 1;
+            border-radius: 20px;
+            margin: 20px;
+        }
+
+        /* Adaptación para pantallas más pequeñas (móviles) */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            .content-left, #flowerCanvas {
+                max-width: 100%;
+                height: auto;
+                min-height: 300px;
+                margin: 10px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            p {
+                font-size: 1em; 
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="content-left">
+        <h1>¡Feliz Primavera, Zaleth! 🤘 Esto es parte de tu migajero</h1>
+        <p>Es mi primera vez haciendo estas tonteras pero algo es algo xd'.</p>
+        <p>Para ser diferente se me ocurrio esta idea. ¡Espero te gusteee</p>
+
+        <div class="button-group">
+            <button id="growBtn">🌱 Plantar</button>
+            <button id="bloomBtn">🌻 Florecer</button>
+            <button id="resetBtn">🔄 Girar</button>
+            <button id="playMusicBtn">🎵 Tocar Música</button>
+        </div>
+
+        <p id="messageDisplay">¡Haz clic en un botón para empezar!</p>
+
+        <p>
+            Sé que te jodo bastante con que te pareces a chucky, con tus ojos verdes que pa mi siguen sin serlos y con tu color de piel pero es un bonito detalle por todas las veces que me aguantas por el temita muerto jajja
+        </p>
+    </div>
+
+    <canvas id="flowerCanvas"></canvas>
+    
+    <audio id="myAudio" src="musica_primavera.mp3" loop></audio>
+
+    <script>
+        const canvas = document.getElementById('flowerCanvas');
+        const ctx = canvas.getContext('2d');
+        let width = canvas.offsetWidth;
+        let height = canvas.offsetHeight;
+        canvas.width = width;
+        canvas.height = height;
+
+        const numFlowers = 4;
+        const flowers = [];
+        const butterflies = [];
+        const numButterflies = 5;
+        const butterflyColors = ['#ffadd2', '#a0c4ff', '#baffc9', '#ffdd99'];
+        
+        const clouds = [];
+        const numClouds = 3;
+        const pollen = [];
+        const numPollen = 20;
+        const shootingStars = [];
+        const numShootingStars = 3;
+
+        const dustParticles = [];
+
+        function setupFlowers() {
+            flowers.length = 0;
+            for (let i = 0; i < numFlowers; i++) {
+                flowers.push({
+                    x: width * (0.1 + 0.8 * (i / (numFlowers - 1))),
+                    y: height * 0.9,
+                    growthFactor: 0,
+                    targetGrowth: 0,
+                    stemHeightMultiplier: 0.3 + Math.random() * 0.05,
+                    stemCurve: (Math.random() - 0.5) * 40,
+                    rotation: Math.random() * Math.PI * 2,
+                    rotationSpeed: (Math.random() - 0.5) * 0.001,
+                    isSpinning: false,
+                    spinSpeed: 0.05 + Math.random() * 0.05
+                });
+            }
+        }
+
+        function setupButterflies() {
+            butterflies.length = 0;
+            for (let i = 0; i < numButterflies; i++) {
+                butterflies.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height * 0.5,
+                    size: 25 + Math.random() * 15,
+                    speedX: (Math.random() - 0.5) * 2,
+                    speedY: (Math.random() - 0.5) * 1.5,
+                    wingPhase: Math.random() * Math.PI * 2,
+                    wingSpeed: 0.2 + Math.random() * 0.1,
+                    color: butterflyColors[Math.floor(Math.random() * butterflyColors.length)],
+                    opacity: 0.7 + Math.random() * 0.3
+                });
+            }
+        }
+        
+        function setupClouds() {
+            clouds.length = 0;
+            for (let i = 0; i < numClouds; i++) {
+                clouds.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height * 0.2,
+                    size: 50 + Math.random() * 50,
+                    speed: 0.1 + Math.random() * 0.3,
+                });
+            }
+        }
+        
+        function setupPollen() {
+            pollen.length = 0;
+            for (let i = 0; i < numPollen; i++) {
+                pollen.push({
+                    x: Math.random() * width,
+                    y: height + Math.random() * height,
+                    size: 2 + Math.random() * 2,
+                    speed: 0.5 + Math.random(),
+                    opacity: 0.5 + Math.random() * 0.5,
+                });
+            }
+        }
+
+        function setupShootingStars() {
+            shootingStars.length = 0;
+            for (let i = 0; i < numShootingStars; i++) {
+                shootingStars.push({
+                    x: width + Math.random() * width * 2,
+                    y: Math.random() * height * 0.5,
+                    length: 50 + Math.random() * 100,
+                    speed: 3 + Math.random() * 5,
+                    opacity: 0.5 + Math.random() * 0.5,
+                    size: 2 + Math.random() * 2
+                });
+            }
+        }
+
+        function setupDust(x, y) {
+            for (let i = 0; i < 50; i++) {
+                dustParticles.push({
+                    x: x + (Math.random() - 0.5) * 20,
+                    y: y,
+                    size: 2 + Math.random() * 3,
+                    speedX: (Math.random() - 0.5) * 5,
+                    speedY: -2 - Math.random() * 3,
+                    gravity: 0.2,
+                    opacity: 1
+                });
+            }
+        }
+
+        let animationFrameId;
+
+        const growButton = document.getElementById('growBtn');
+        const bloomButton = document.getElementById('bloomBtn');
+        const spinButton = document.getElementById('resetBtn');
+        const messageDisplay = document.getElementById('messageDisplay');
+
+        const messages = {
+            grow: "¡esperaaaa, esperaaaa esperaaaa y sigue esperando como esperaste a que el que cambie xd!",
+            bloom: "Estas flores si crecen, no como tu jajaja",
+            spin: "¡Giran como tu cuando tomas y no sabes que hacer con tu vida xd ✨",
+            initial: "¡Haz clic en un botón para empezar! 🌱"
+        };
+        messageDisplay.innerText = messages.initial; // Mensaje inicial
+
+        growButton.addEventListener('click', () => {
+            messageDisplay.innerText = messages.grow;
+            
+            flowers.forEach(flower => {
+                setupDust(flower.x, flower.y); // Genera tierrita al plantar
+                flower.targetGrowth = 0.6;
+            });
+            if (!animationFrameId) animate();
+        });
+
+        bloomButton.addEventListener('click', () => {
+            flowers.forEach(flower => {
+                if (flower.growthFactor > 0.1) {
+                    flower.targetGrowth = 1;
+                }
+            });
+            if (!animationFrameId) animate();
+            messageDisplay.innerText = messages.bloom;
+        });
+
+        spinButton.addEventListener('click', () => {
+            let allAreSpinning = flowers.every(flower => flower.isSpinning);
+            flowers.forEach(flower => {
+                flower.isSpinning = !allAreSpinning;
+            });
+
+            if (allAreSpinning) {
+                messageDisplay.innerText = messages.initial; // Vuelve al mensaje inicial si se detienen
+                spinButton.innerText = "🔄 Girar";
+            } else {
+                messageDisplay.innerText = messages.spin;
+                spinButton.innerText = "❌ Detener";
+            }
+
+            if (!animationFrameId) animate();
+        });
+        
+        function drawStem(flower, progress) {
+            ctx.beginPath();
+            ctx.moveTo(flower.x, flower.y);
+            const stemHeight = progress * height * flower.stemHeightMultiplier;
+            
+            ctx.quadraticCurveTo(flower.x + flower.stemCurve, flower.y - stemHeight / 2, flower.x, flower.y - stemHeight);
+            
+            const gradient = ctx.createLinearGradient(flower.x - 5, 0, flower.x + 5, 0);
+            gradient.addColorStop(0, '#5a8d4c');
+            gradient.addColorStop(0.5, '#7cc768');
+            gradient.addColorStop(1, '#5a8d4c');
+            
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 10;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        }
+
+        function drawLeaves(flower, progress) {
+            if (progress < 0.2) return;
+            const stemHeight = progress * height * flower.stemHeightMultiplier;
+            const leafProgress = (progress - 0.2) / 0.4;
+            if (leafProgress <= 0) return;
+
+            ctx.fillStyle = '#6cb75b';
+
+            ctx.save();
+            ctx.translate(flower.x, flower.y - stemHeight * 0.4);
+            ctx.rotate(-0.3);
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 45 * Math.min(1, leafProgress), 18 * Math.min(1, leafProgress), 0, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(flower.x, flower.y - stemHeight * 0.5);
+            ctx.rotate(0.3);
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 40 * Math.min(1, leafProgress), 15 * Math.min(1, leafProgress), 0, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawFlowerHead(flower, progress) {
+            if (progress < 0.6) return;
+            
+            const bloomProgress = (progress - 0.6) / 0.4;
+            const stemHeight = progress * height * flower.stemHeightMultiplier;
+            const centerX = flower.x;
+            const centerY = flower.y - stemHeight;
+
+            const numPetals = 20;
+            const basePetalLength = 120;
+            const basePetalWidth = 50;
+            
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            
+            if (flower.isSpinning) {
+                flower.rotation += flower.spinSpeed;
+            } else {
+                flower.rotation += flower.rotationSpeed;
+            }
+            ctx.rotate(flower.rotation);
+
+            for (let i = 0; i < numPetals; i++) {
+                const angle = (i / numPetals) * 2 * Math.PI + (Math.PI / numPetals) / 2;
+                ctx.save();
+                ctx.rotate(angle);
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.quadraticCurveTo(basePetalLength * 0.6 * bloomProgress, basePetalWidth * 0.8 * bloomProgress, basePetalLength * 1.1 * bloomProgress, 0);
+                ctx.quadraticCurveTo(basePetalLength * 0.6 * bloomProgress, -basePetalWidth * 0.8 * bloomProgress, 0, 0);
+                ctx.fillStyle = `rgba(180, 140, 0, ${bloomProgress * 0.8})`;
+                ctx.fill();
+                ctx.restore();
+            }
+
+            for (let i = 0; i < numPetals; i++) {
+                const angle = (i / numPetals) * 2 * Math.PI;
+                ctx.save();
+                ctx.rotate(angle);
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.bezierCurveTo(basePetalLength * 0.3 * bloomProgress, basePetalWidth * 0.7 * bloomProgress,
+                                 basePetalLength * 0.7 * bloomProgress, basePetalWidth * 0.7 * bloomProgress,
+                                 basePetalLength * 1.0 * bloomProgress, 0);
+                ctx.bezierCurveTo(basePetalLength * 0.7 * bloomProgress, -basePetalWidth * 0.7 * bloomProgress,
+                                 basePetalLength * 0.3 * bloomProgress, -basePetalWidth * 0.7 * bloomProgress,
+                                 0, 0);
+                const gradient = ctx.createLinearGradient(0, -basePetalWidth / 2, basePetalLength, basePetalWidth / 2);
+                gradient.addColorStop(0, `rgba(255, 240, 150, ${bloomProgress})`);
+                gradient.addColorStop(0.5, `rgba(255, 215, 0, ${bloomProgress})`);
+                gradient.addColorStop(1, `rgba(220, 180, 0, ${bloomProgress})`);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                ctx.restore();
+            }
+            
+            ctx.beginPath();
+            ctx.arc(0, 0, 45 * bloomProgress, 0, 2 * Math.PI);
+            const centerGradient = ctx.createRadialGradient(0, 0, 1, 0, 0, 45 * bloomProgress);
+            centerGradient.addColorStop(0, '#e8a822');
+            centerGradient.addColorStop(1, '#a56c07');
+            ctx.fillStyle = centerGradient;
+            ctx.shadowColor = 'rgba(255, 255, 0, 0.7)';
+            ctx.shadowBlur = 45 * bloomProgress;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.restore();
+        }
+
+        function drawButterfly(butterfly) {
+            ctx.save();
+            ctx.translate(butterfly.x, butterfly.y);
+            ctx.scale(butterfly.size / 20, butterfly.size / 20);
+
+            const wingFlap = Math.sin(butterfly.wingPhase) * 0.3;
+            ctx.globalAlpha = butterfly.opacity;
+
+            ctx.fillStyle = '#6f4f2a';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 3, 10, 0, 0, 2 * Math.PI);
+            ctx.fill();
+
+            ctx.strokeStyle = '#6f4f2a';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, -10); ctx.lineTo(-5, -15);
+            ctx.moveTo(0, -10); ctx.lineTo(5, -15);
+            ctx.stroke();
+
+            ctx.fillStyle = butterfly.color;
+            ctx.beginPath();
+            ctx.ellipse(-8, -5 - wingFlap * 10, 10, 15, Math.PI / 6, 0, 2 * Math.PI);
+            ctx.ellipse(-8, 5 + wingFlap * 10, 8, 12, -Math.PI / 6, 0, 2 * Math.PI);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.ellipse(8, -5 - wingFlap * 10, 10, 15, -Math.PI / 6, 0, 2 * Math.PI);
+            ctx.ellipse(8, 5 + wingFlap * 10, 8, 12, Math.PI / 6, 0, 2 * Math.PI);
+            ctx.fill();
+
+            ctx.globalAlpha = 1;
+            ctx.restore();
+        }
+
+        function updateButterflies() {
+            butterflies.forEach(butterfly => {
+                butterfly.x += butterfly.speedX;
+                butterfly.y += butterfly.speedY;
+                butterfly.wingPhase += butterfly.wingSpeed;
+
+                if (Math.random() < 0.01) {
+                    butterfly.speedX = (Math.random() - 0.5) * 2;
+                    butterfly.speedY = (Math.random() - 0.5) * 1.5;
+                }
+
+                if (butterfly.x < 0 || butterfly.x > width) butterfly.speedX *= -1;
+                if (butterfly.y < 0 || butterfly.y > height * 0.5) butterfly.speedY *= -1;
+            });
+        }
+
+        function drawSun() {
+            ctx.save();
+            ctx.translate(width * 0.9, height * 0.1);
+            
+            ctx.beginPath();
+            ctx.arc(0, 0, 60, 0, 2 * Math.PI);
+            ctx.fillStyle = '#ffdf00';
+            ctx.shadowColor = 'rgba(255, 255, 0, 0.8)';
+            ctx.shadowBlur = 30;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            const numRays = 12;
+            for (let i = 0; i < numRays; i++) {
+                const angle = (i / numRays) * 2 * Math.PI;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(Math.cos(angle) * 70, Math.sin(angle) * 70);
+                ctx.lineTo(Math.cos(angle) * 100, Math.sin(angle) * 100);
+                ctx.lineTo(Math.cos(angle - 0.1) * 70, Math.sin(angle - 0.1) * 70);
+                ctx.fillStyle = '#ffdf00';
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+        
+        function drawCloud(cloud) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.beginPath();
+            ctx.arc(cloud.x, cloud.y, cloud.size * 0.5, 0, 2 * Math.PI);
+            ctx.arc(cloud.x + cloud.size * 0.6, cloud.y, cloud.size * 0.4, 0, 2 * Math.PI);
+            ctx.arc(cloud.x - cloud.size * 0.6, cloud.y, cloud.size * 0.4, 0, 2 * Math.PI);
+            ctx.arc(cloud.x + cloud.size * 0.3, cloud.y - cloud.size * 0.3, cloud.size * 0.4, 0, 2 * Math.PI);
+            ctx.arc(cloud.x - cloud.size * 0.3, cloud.y - cloud.size * 0.3, cloud.size * 0.4, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        function updateClouds() {
+            clouds.forEach(cloud => {
+                cloud.x += cloud.speed;
+                if (cloud.x > width + cloud.size) {
+                    cloud.x = -cloud.size;
+                    cloud.y = Math.random() * height * 0.2;
+                    cloud.size = 50 + Math.random() * 50;
+                    cloud.speed = 0.1 + Math.random() * 0.3;
+                }
+            });
+        }
+        
+        function drawPollen(p) {
+            ctx.fillStyle = `rgba(255, 215, 0, ${p.opacity})`;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        function updatePollen() {
+            pollen.forEach(p => {
+                p.y -= p.speed;
+                p.x += (Math.random() - 0.5) * 0.5;
+                p.opacity -= 0.005;
+                if (p.y < 0 || p.opacity < 0.1) {
+                    p.y = height + Math.random() * height;
+                    p.x = Math.random() * width;
+                    p.speed = 0.5 + Math.random();
+                    p.opacity = 0.5 + Math.random() * 0.5;
+                }
+            });
+        }
+        
+        function drawShootingStar(star) {
+            ctx.save();
+            ctx.translate(star.x, star.y);
+            
+            const gradient = ctx.createLinearGradient(0, 0, -star.length, star.length);
+            gradient.addColorStop(0, `rgba(255, 255, 255, ${star.opacity})`);
+            gradient.addColorStop(1, `rgba(255, 255, 255, 0)`);
+            
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-star.length, star.length);
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(0, 0, star.size, 0, 2 * Math.PI);
+            ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.restore();
+        }
+
+        function updateShootingStars() {
+            shootingStars.forEach(star => {
+                star.x -= star.speed;
+                star.y += star.speed;
+
+                if (star.x < -star.length || star.y > height + star.length) {
+                    star.x = width + Math.random() * width * 2;
+                    star.y = Math.random() * height * 0.5;
+                    star.length = 50 + Math.random() * 100;
+                    star.speed = 3 + Math.random() * 5;
+                    star.opacity = 0.5 + Math.random() * 0.5;
+                    star.size = 2 + Math.random() * 2;
+                }
+            });
+        }
+
+        function drawDust(particle) {
+            ctx.fillStyle = `rgba(139, 69, 19, ${particle.opacity})`; // Color de tierra
+            ctx.beginPath();
+            ctx.arc(particle.x, particle.y, particle.size, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        function updateDust() {
+            dustParticles.forEach(particle => {
+                particle.x += particle.speedX;
+                particle.y += particle.speedY;
+                particle.speedY += particle.gravity;
+                particle.opacity -= 0.02;
+            });
+            for (let i = dustParticles.length - 1; i >= 0; i--) {
+                if (dustParticles[i].opacity <= 0) {
+                    dustParticles.splice(i, 1);
+                }
+            }
+        }
+
+        // Nueva función para dibujar el suelo de tierra
+        function drawGround() {
+            const groundHeight = height * 0.15; // Altura de la franja de tierra
+            ctx.fillStyle = '#8B4513'; // Color marrón oscuro para la tierra
+            ctx.beginPath();
+            // Dibujar una forma ligeramente irregular para que no sea un bloque perfecto
+            ctx.moveTo(0, height - groundHeight);
+            ctx.lineTo(width, height - groundHeight * 0.95);
+            ctx.lineTo(width, height);
+            ctx.lineTo(0, height);
+            ctx.closePath();
+            ctx.fill();
+
+            // Añadir un poco de textura o detalles en el suelo
+            for (let i = 0; i < 50; i++) {
+                const x = Math.random() * width;
+                const y = height - Math.random() * groundHeight;
+                const radius = Math.random() * 2 + 1;
+                ctx.fillStyle = `rgba(101, 67, 33, ${0.5 + Math.random() * 0.5})`; // Manchas más oscuras
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            
+            drawGround(); // Dibuja el suelo primero
+
+            updateClouds();
+            clouds.forEach(drawCloud);
+            drawSun();
+
+            updateShootingStars();
+            shootingStars.forEach(drawShootingStar);
+
+            flowers.forEach(flower => {
+                if (Math.abs(flower.targetGrowth - flower.growthFactor) > 0.001) {
+                    flower.growthFactor += (flower.targetGrowth - flower.growthFactor) * 0.003;
+                } else {
+                    flower.growthFactor = flower.targetGrowth;
+                }
+                
+                if (flower.growthFactor > 0.01) {
+                    drawStem(flower, flower.growthFactor);
+                    drawLeaves(flower, flower.growthFactor);
+                    drawFlowerHead(flower, flower.growthFactor);
+                }
+            });
+
+            updateButterflies();
+            butterflies.forEach(drawButterfly);
+
+            updatePollen();
+            pollen.forEach(drawPollen);
+            
+            updateDust();
+            dustParticles.forEach(drawDust);
+
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => {
+            width = canvas.offsetWidth;
+            height = canvas.offsetHeight;
+            canvas.width = width;
+            canvas.height = height;
+            setupFlowers();
+            setupButterflies();
+            setupClouds();
+            setupPollen();
+            setupShootingStars();
+            if (!animationFrameId) animate();
+        });
+
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                if (entry.target === canvas) {
+                    const newWidth = entry.contentRect.width;
+                    const newHeight = entry.contentRect.height;
+                    if (width !== newWidth || height !== newHeight) {
+                        width = newWidth;
+                        height = newHeight;
+                        canvas.width = width;
+                        canvas.height = height;
+                        setupFlowers();
+                        setupButterflies();
+                        setupClouds();
+                        setupPollen();
+                        setupShootingStars();
+                        if (!animationFrameId) animate();
+                    }
+                }
+            }
+        });
+        resizeObserver.observe(canvas);
+
+        setupFlowers();
+        setupButterflies();
+        setupClouds();
+        setupPollen();
+        setupShootingStars();
+        animate();
+        
+        // AHORA EL CÓDIGO DE REPRODUCCIÓN ESTÁ COMPLETO Y FUNCIONARÁ.
+        const audio = document.getElementById('myAudio');
+        const playMusicBtn = document.getElementById('playMusicBtn');
+        
+        playMusicBtn.addEventListener('click', () => {
+            audio.play().catch(error => {
+                console.error("No se pudo reproducir la música:", error);
+            });
+            playMusicBtn.style.display = 'none'; // Oculta el botón
+        });
+    </script>
+</body>
+</html>
